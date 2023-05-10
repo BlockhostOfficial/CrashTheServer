@@ -313,7 +313,7 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
         String privateIp = privateNetArray.getJSONObject(0).getString("ip");
 
         // Send the private IP address to the player
-        sender.sendMessage(ChatColor.GREEN + "Private IP: " + privateIp);
+        //sender.sendMessage(ChatColor.GREEN + "Private IP: " + privateIp);
 
         // Connect to the server via SSH
         getLogger().info("Connecting to server via SSH...");
@@ -408,6 +408,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 runCommandWithLogging(session, "mkdir plugins", "Made directory plugins", "Failed to make directory plugins", false);
             }, delay.getAndAdd(20));
 
+            /*
+
             scheduler.runTaskLater(this, () -> {
                 runCommandWithLogging(session, "mkdir plugins/TAB", "Made directory TAB", "Failed to make directory TAB", false);
             }, delay.getAndAdd(20));
@@ -440,6 +442,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 runCommandWithLogging(session, "wget -P ./plugins https://github.com/NEZNAMY/TAB/releases/download/3.3.2/TAB.v3.3.2.jar", "Downloaded TAB", "Failed to download TAB", false);
             }, delay.getAndAdd(100));
 
+             */
+
             if(worldedit){
                 scheduler.runTaskLater(this, () -> {
                     runCommandWithLogging(session, "wget -P ./plugins https://cdn.discordapp.com/attachments/1105571133526392874/1105591774438752296/worldedit-bukkit-7.2.14.jar", "Downloaded WorldEdit", "Failed to download WorldEdit", false);
@@ -460,7 +464,7 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             scheduler.runTaskLater(this, () -> {
                 runCommandWithLogging(session, "java -Xmx6144M -Xms6144M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar server.jar", "Started the minecraft server.", "Failed to start the server", false);
                 String port = "25565"; // Default Minecraft server port
-                sender.sendMessage(ChatColor.GREEN + "Server started. IP: " + privateIp + " Port: " + port);
+                sender.sendMessage(ChatColor.GREEN + "Server started. Join with /server " + serverName);
                 saveServerInfoToFile(serverName, privateIp, port);
             }, delay.getAndAdd(20));
 
