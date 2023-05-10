@@ -84,6 +84,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
     boolean whitelist = false;
     boolean worldedit = false;
     String serverName = null;
+    //String serverId = null;
+    private int serverId;
 
     private final List<String> notAllowedNames = new ArrayList<>();
     private final Map<String, Long> cooldowns = new HashMap<>();
@@ -96,24 +98,6 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 sender.sendMessage(ChatColor.RED + "Usage: /startserver name:serverName flat:on/off whitelist:on/off worldedit:on/off");
                 return true;
             }
-
-            CommandSender player = sender;
-
-            if (!player.hasPermission("crash.srv.1") && !player.hasPermission("crash.srv.2") && !player.hasPermission("crash.srv.3")) {
-                sender.sendMessage(ChatColor.RED + "You cannot start a server right now. You can only start 3 servers per week.");
-                return true;
-            }
-
-            if (player.hasPermission("crash.srv.3")) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.3 false 7d");
-            } else if (player.hasPermission("crash.srv.2") && (!player.hasPermission("crash.srv.3"))) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.2 false 7d");
-            } else if (player.hasPermission("crash.srv.1") && (!player.hasPermission("crash.srv.3")) && (!player.hasPermission("crash.srv.2"))) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.1 false 7d");
-            }
-
-
-
 
             // Parse the command arguments
             for (String arg : args) {
@@ -150,6 +134,21 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             if (serverName.length() > 16) {
                 sender.sendMessage(ChatColor.RED + "Server name must be 16 characters or less.");
                 return true;
+            }
+
+            CommandSender player = sender;
+
+            if (!player.hasPermission("crash.srv.1") && !player.hasPermission("crash.srv.2") && !player.hasPermission("crash.srv.3")) {
+                sender.sendMessage(ChatColor.RED + "You cannot start a server right now. You can only start 3 servers per week.");
+                return true;
+            }
+
+            if (player.hasPermission("crash.srv.3")) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.3 false 7d");
+            } else if (player.hasPermission("crash.srv.2") && (!player.hasPermission("crash.srv.3"))) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.2 false 7d");
+            } else if (player.hasPermission("crash.srv.1") && (!player.hasPermission("crash.srv.3")) && (!player.hasPermission("crash.srv.2"))) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.1 false 7d");
             }
 
             // Check if the server name is valid
@@ -207,6 +206,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 "{\"automount\":false,\"datacenter\":\"fsn1-dc14\",\"image\":\"ubuntu-22.04\",\"labels\":{},\"name\":\"" + serverName + "\",\"server_type\":\"cax21\",\"networks\":[2855591],\"public_net\":{\"enable_ipv4\":true,\"enable_ipv6\":false},\"ssh_keys\":[\"ssh2\"],\"start_after_create\":true}",
                 "https://api.hetzner.cloud/v1/servers"
         };
+
+
 
         // Execute the curl command
         Process process2 = Runtime.getRuntime().exec(command);
@@ -411,6 +412,29 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 runCommandWithLogging(session, "mkdir plugins/TAB", "Made directory TAB", "Failed to make directory TAB", false);
             }, delay.getAndAdd(20));
 
+            scheduler.runTaskLater(this, () -> {
+                String configYaml = "header-footer:\n" +
+                        "  enabled: true\n" +
+                        "  disable-in-worlds:\n" +
+                        "    - disabledworld\n" +
+                        "  disable-in-servers:\n" +
+                        "    - disabledserver\n" +
+                        "  header:\n" +
+                        "    - ''\n" +
+                        "    - '&4&l&oCrashTheServer&7&l&o.net'\n" +
+                        "    - ''\n" +
+                        "    - '&eThere are &b%online% &eplayers online.'\n" +
+                        "    - ''\n" +
+                        "  footer:\n" +
+                        "    - ''\n" +
+                        "    - '&eInstance Name: " + serverName + "'\n" +
+                        "    - '&eInstance ID: " + serverId + "'\n" +
+                        "    - '        &7Discord: &8https://discord.crashtheserver.net&r        '\n" +
+                        "    - ''\n";
+
+                runCommandWithLogging(session, "echo '" + configYaml + "' > plugins/TAB/config.yml", "TAB config updated", "Failed to update TAB config", false);
+            }, delay.getAndAdd(20));
+
             // Make the server directory
             scheduler.runTaskLater(this, () -> {
                 runCommandWithLogging(session, "wget -P ./plugins https://github.com/NEZNAMY/TAB/releases/download/3.3.2/TAB.v3.3.2.jar", "Downloaded TAB", "Failed to download TAB", false);
@@ -441,7 +465,7 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             }, delay.getAndAdd(20));
 
             // Close the session and stop the client after all tasks are executed
-            //waitForLastTaskAndCloseSession(session, client, delay.get());
+            waitForLastTaskAndCloseSession(session, client, delay.get());
 
 
         } catch (Exception e) {
@@ -488,10 +512,10 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
         Bukkit.getScheduler().runTaskLater(this, () -> {
             try {
                 session.close();
-                client.stop();
-                getLogger().info("SSH session closed and client stopped.");
+                //client.stop();
+                getLogger().info("SSH session closed");
             } catch (Exception e) {
-                getLogger().severe("Failed to close SSH session and stop client: " + e.getMessage());
+                getLogger().severe("Failed to close SSH session: " + e.getMessage());
                 e.printStackTrace();
             }
         }, delay);
