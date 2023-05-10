@@ -12,6 +12,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -37,6 +40,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
         getCommand("startserver").setTabCompleter(this);
         this.saveDefaultConfig();
 
+        this.getServer().getPluginManager().registerEvents(new JoinEvent(this), this);
+
         // Get the absolute path to the private key file in the plugin's data folder
         File privateKeyFile = new File(getDataFolder(), "privatekey.key");
         String privateKeyPath = privateKeyFile.getAbsolutePath();
@@ -53,6 +58,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             getLogger().warning("hetzner-api-token not found in config.yml");
         }
     }
+
+
 
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (cmd.getName().equalsIgnoreCase("startserver")) {
@@ -88,6 +95,21 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             if (args.length < 1) {
                 sender.sendMessage(ChatColor.RED + "Usage: /startserver name:serverName flat:on/off whitelist:on/off worldedit:on/off");
                 return true;
+            }
+
+            CommandSender player = sender;
+
+            if (!player.hasPermission("crash.srv.1") && !player.hasPermission("crash.srv.2") && !player.hasPermission("crash.srv.3")) {
+                sender.sendMessage(ChatColor.RED + "You cannot start a server right now. You can only start 3 servers per week.");
+                return true;
+            }
+
+            if (player.hasPermission("crash.srv.3")) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.3 false 7d");
+            } else if (player.hasPermission("crash.srv.2") && (!player.hasPermission("crash.srv.3"))) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.2 false 7d");
+            } else if (player.hasPermission("crash.srv.1") && (!player.hasPermission("crash.srv.3")) && (!player.hasPermission("crash.srv.2"))) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getName() + " permission settemp crash.srv.1 false 7d");
             }
 
 
@@ -170,8 +192,9 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
     }
 
 
-    private void createServer(String serverName, boolean flat, CommandSender sender) throws IOException {
+    private void createServer(String serverName, boolean flat, CommandSender sender ) throws IOException {
         // Set the curl command and arguments
+
         String[] command = {
                 "curl",
                 "-X",
@@ -296,16 +319,17 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
 
         CompletableFuture.runAsync(() -> {
             try {
-                connectAndSetUpServer(serverName, privateIp, sender);
-
+                Player player = (Player) sender;
+                connectAndSetUpServer(serverName, privateIp, sender, player.getUniqueId(), sender.getName());
             } catch (Exception e) {
                 getLogger().severe("Failed to establish SSH connection: " + e.getMessage());
                 e.printStackTrace();
             }
         });
+
     }
 
-    private void connectAndSetUpServer(String serverName, String privateIp, CommandSender sender) throws Exception {
+    private void connectAndSetUpServer(String serverName, String privateIp, CommandSender sender, UUID uuid, String playerName) throws Exception {
 
         File privateKeyFile = new File(getDataFolder(), "privatekey.key");
 
@@ -365,6 +389,18 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             // Set "bungeecord: true" in spigot.yml
             scheduler.runTaskLater(this, () -> {
                 runCommandWithLogging(session, "printf 'settings:\\n  bungeecord: true\\n' > spigot.yml", "spigot.yml bungeecord is true now", "Failed to make spigot.yml", false);
+            }, delay.getAndAdd(20));
+
+            scheduler.runTaskLater(this, () -> {
+                String opsJson = "[\n" +
+                        "  {\n" +
+                        "    \"uuid\": \"" + uuid + "\",\n" +
+                        "    \"name\": \"" + playerName + "\",\n" +
+                        "    \"level\": 4,\n" +
+                        "    \"bypassesPlayerLimit\": false\n" +
+                        "  }\n" +
+                        "]";
+                runCommandWithLogging(session, "echo '" + opsJson + "' > ops.json", "ops.json created", "Failed to create ops.json", false);
             }, delay.getAndAdd(20));
 
             scheduler.runTaskLater(this, () -> {
