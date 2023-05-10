@@ -1,0 +1,12 @@
+name: CrashTheServer
+version: '${project.version}'
+main: net.blockhost.crashtheserver.CrashTheServer
+api-version: 1.19
+authors: [qbasty]
+description: Core plugin for the hub
+website: blockhost.net
+
+commands:
+  startserver:
+    description: Creates a new server.
+    usage: /startserver <name>
