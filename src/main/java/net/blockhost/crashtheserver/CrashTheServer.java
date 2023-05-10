@@ -90,6 +90,9 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
     private final List<String> notAllowedNames = new ArrayList<>();
     private final Map<String, Long> cooldowns = new HashMap<>();
 
+    List<String> cooldownPlayers = new ArrayList<String>();
+
+
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("startserver")) {
@@ -117,6 +120,12 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
                 } else if (arg.equals("worldedit:off")) {
                     worldedit = false;
                 }
+            }
+
+            // Check if the player is on cooldown
+            if (cooldownPlayers.contains(sender.getName())) {
+                sender.sendMessage(ChatColor.RED + "You cannot use this command again for 60 minutes.");
+                return true;
             }
 
             // Check if the server name and flat option were provided
@@ -178,6 +187,8 @@ public class CrashTheServer extends JavaPlugin implements CommandExecutor {
             CompletableFuture.runAsync(() -> {
                 try {
                     createServer(serverName, flat, sender);
+                    cooldownPlayers.add(sender.getName());
+                    Bukkit.getScheduler().runTaskLater(this, () -> cooldownPlayers.remove(sender.getName()), 60 * 60 * 20);
                 } catch (IOException e) {
                     sender.sendMessage(ChatColor.RED + "Error creating server: " + e.getMessage());
                     e.printStackTrace();
